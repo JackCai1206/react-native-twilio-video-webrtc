@@ -1,4 +1,4 @@
-import { EventEmitter } from 'react-native';
+import { EventEmitter } from 'events';
 import TW, { VideoTrack } from 'twilio-video';
 
 const supportedEvents = [
