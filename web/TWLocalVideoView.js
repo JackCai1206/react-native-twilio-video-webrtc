@@ -1,6 +1,6 @@
 import React, { Component, useEffect, useRef } from 'react'
 import { View } from 'react-native';
-import { addLocalView, removeLocalView } from '../web/TWVideoModule';
+import { addLocalView, removeLocalView } from './TWVideoModule';
 
 const TWLocalVideoView = ({ enabled }) => {
     const videoEl = useRef(null);

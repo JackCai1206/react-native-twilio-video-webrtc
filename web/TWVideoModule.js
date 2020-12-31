@@ -1,7 +1,7 @@
 import { EventEmitter } from 'events';
-import TW, { VideoTrack } from 'twilio-video';
+import TW, { Room, VideoTrack } from 'twilio-video';
 
-const supportedEvents = [
+export const supportedEvents = [
     "roomDidConnect",
     "roomDidDisconnect",
     "roomDidFailToConnect",
@@ -109,6 +109,28 @@ function unpublishLocalAudio() {
 
 }
 
+function addParticipantView(element, participantSid, trackSid) {
+    const participant = room.participants.get(participantSid);
+    if (participant) {
+        for (const {track} of participant.videoTracks) {
+            if (track.sid === trackSid) {
+                track.attach(element);
+            }
+        }
+    }
+}
+
+function removeParticipantView(element, participantSid, trackSid) {
+    const participant = room.participants.get(participantSid);
+    if (participant) {
+        for (const {track} of participant.videoTracks) {
+            if (track.sid === trackSid) {
+                track.detach(element);
+            }
+        }
+    }
+}
+
 export default {
     eventEmitter,
     connect,
@@ -120,5 +142,7 @@ export default {
     stopLocalVideo,
     stopLocalAudio,
     setLocalVideoEnabled,
-    setLocalAudioEnabled
+    setLocalAudioEnabled,
+    addParticipantView,
+    removeParticipantView
 }
