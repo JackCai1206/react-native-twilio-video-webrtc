@@ -26,18 +26,29 @@ export const supportedEvents = [
     "networkQualityLevelsChanged"
 ]
 
-let room;
+let myRoom;
 let listening;
 let localVideoTrack;
 let localAudioTrack;
+const remoteVideoTracks = [];
+const remoteAudioTracks = [];
 const eventEmitter = new EventEmitter();
 
 function connect(roomName, accessToken, enableVideo, encodingParameters, enableNetworkQualityReporting) {
-    room = TW.connect(accessToken, {
+    TW.connect(accessToken, {
         name: roomName,
         video: enableVideo,
         networkQuality: enableNetworkQualityReporting,
         tracks: [localVideoTrack, localAudioTrack]
+    }).then(room => {
+        myRoom = room;
+        if (listening) {
+            eventEmitter.emit('roomDidConnect', { roomName: room.name, roomSid: room.sid, participants: room.participants })
+            _registerEvents(room);
+        }
+        return room;
+    }).catch(e => {
+        eventEmitter.emit('roomDidFailToConnect', { roomName, roomSid: null, error: e?.message });
     });
 }
 
@@ -51,7 +62,8 @@ function setRemoteAudioPlayback(participantSid, enabled) {
 }
 
 function disconnect() {
-    room.disconnect();
+    myRoom.disconnect();
+    myRoom = null;
 }
 
 function changeListenerStatus(value) {
@@ -71,10 +83,18 @@ function startLocalAudio() {
 
 function stopLocalVideo() {
     localVideoTrack.stop();
+    localVideoTrack = null;
+    if (myRoom) {
+        myRoom.localParticipant.videoTracks.forEach(pub => pub.unpublish());
+    }
 }
 
 function stopLocalAudio() {
     localAudioTrack.stop();
+    localAudioTrack = null;
+    if (myRoom) {
+        myRoom.localParticipant.audioTracks.forEach(pub => pub.unpublish());
+    }
 }
 
 export function addLocalView(element) {
@@ -109,8 +129,9 @@ function unpublishLocalAudio() {
 
 }
 
-function addParticipantView(element, participantSid, trackSid) {
-    const participant = room.participants.get(participantSid);
+export function addParticipantView(element, participantSid, trackSid) {
+    if (!myRoom) return;
+    const participant = myRoom.participants.get(participantSid);
     if (participant) {
         for (const {track} of participant.videoTracks) {
             if (track.sid === trackSid) {
@@ -120,8 +141,9 @@ function addParticipantView(element, participantSid, trackSid) {
     }
 }
 
-function removeParticipantView(element, participantSid, trackSid) {
-    const participant = room.participants.get(participantSid);
+export function removeParticipantView(element, participantSid, trackSid) {
+    if (!myRoom) return;
+    const participant = myRoom.participants.get(participantSid);
     if (participant) {
         for (const {track} of participant.videoTracks) {
             if (track.sid === trackSid) {
@@ -129,6 +151,44 @@ function removeParticipantView(element, participantSid, trackSid) {
             }
         }
     }
+}
+
+function _handleNewTrackEvents(participant, someTrack) {
+    const track = {
+        enabled: someTrack.isEnabled,
+        trackName: someTrack.name,
+        trackSid: someTrack.sid
+    };
+    eventEmitter.emit('participantAddedVideoTrack', { participant, track });
+    someTrack.on('disabled', () => {
+        eventEmitter.emit('participantDisabledVideoTrack', { participant, track });
+    });
+    someTrack.on('enabled', () => {
+        eventEmitter.emit('participantEnabledVideoTrack', { participant, track });
+    });
+}
+
+function _handleNewParticipantEvents(room, participant) {
+    eventEmitter.emit('roomParticipantDidConnect', { roomName: room.name, roomSid: room.sid, participant })
+    participant.videoTracks.forEach(publication => {
+        if (publication.isSubcribed) {
+            _handleNewTrackEvents(participant, track);
+        }
+        publication.on('unsubscribed', () => {
+            eventEmitter.emit('participantRemovedVideoTrack', { participant, track });
+        });
+    });
+
+    participant.on('trackSubscribed', someTrack => {
+        if (someTrack.kind === 'video') {
+            _handleNewTrackEvents(participant, track);
+        }
+    });
+}
+
+function _registerEvents(room) {
+    room.participants.forEach((participant) => _handleNewParticipantEvents(room, participant));
+    room.on('participantConnected', (participant) => _handleNewParticipantEvents(room, participant));
 }
 
 export default {
@@ -143,6 +203,4 @@ export default {
     stopLocalAudio,
     setLocalVideoEnabled,
     setLocalAudioEnabled,
-    addParticipantView,
-    removeParticipantView
 }

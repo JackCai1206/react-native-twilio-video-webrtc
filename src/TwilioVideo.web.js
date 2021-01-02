@@ -287,9 +287,8 @@ export default class extends Component {
     for (const eventStr of supportedEvents) {
         this._eventEmitter.addListener(eventStr, data => {
             const handlerStr = 'on' + eventStr.charAt(0).toUpperCase() + eventStr.slice(1);
-            console.log(handlerStr)
             if (this.props[handlerStr]) {
-                this.props[handlerStr](data)
+                this.props[handlerStr](data);
             }
         });
     }
