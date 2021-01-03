@@ -2,10 +2,11 @@ import React, { Component, useEffect, useRef } from 'react'
 import { View } from 'react-native';
 import { addParticipantView, removeParticipantView } from './TWVideoModule';
 
-const TWParticipantVideoView = (trackIdentifier) => {
+const TWParticipantVideoView = ({ trackIdentifier }) => {
     const videoEl = useRef(null);
 
     useEffect(() => {
+        console.log(trackIdentifier);
         addParticipantView(videoEl.current, trackIdentifier.participantSid, trackIdentifier.videoTrackSid);
         // if (enabled) addParticipantView(videoEl.current, participantSid, trackSid);
         // else removeParticipantView(videoEl.current, participantSid, trackSid)

@@ -133,11 +133,12 @@ export function addParticipantView(element, participantSid, trackSid) {
     if (!myRoom) return;
     const participant = myRoom.participants.get(participantSid);
     if (participant) {
-        for (const {track} of participant.videoTracks) {
-            if (track.sid === trackSid) {
-                track.attach(element);
+        console.log(participant);
+        participant.videoTracks.forEach(publication => {
+            if (publication.track.sid === trackSid) {
+                publication.track.attach(element);
             }
-        }
+        })
     }
 }
 
@@ -181,7 +182,7 @@ function _handleNewParticipantEvents(room, participant) {
 
     participant.on('trackSubscribed', someTrack => {
         if (someTrack.kind === 'video') {
-            _handleNewTrackEvents(participant, track);
+            _handleNewTrackEvents(participant, someTrack);
         }
     });
 }
