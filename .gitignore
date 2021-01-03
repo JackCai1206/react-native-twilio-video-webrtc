@@ -51,3 +51,6 @@ local.properties
 
 # vscode
 .vscode/
+**/.project
+**/.settings/**/*
+*.lock

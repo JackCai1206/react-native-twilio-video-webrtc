@@ -34,10 +34,12 @@ const remoteVideoTracks = [];
 const remoteAudioTracks = [];
 const eventEmitter = new EventEmitter();
 
+// https://www.twilio.com/docs/video/tutorials/developing-high-quality-video-applications#grid-mode
 function connect(roomName, accessToken, enableVideo, encodingParameters, enableNetworkQualityReporting) {
     TW.connect(accessToken, {
         name: roomName,
         video: enableVideo,
+        audio: true,
         networkQuality: enableNetworkQualityReporting,
         tracks: [localVideoTrack, localAudioTrack]
     }).then(room => {
@@ -46,6 +48,9 @@ function connect(roomName, accessToken, enableVideo, encodingParameters, enableN
             eventEmitter.emit('roomDidConnect', { roomName: room.name, roomSid: room.sid, participants: room.participants })
             _registerEvents(room);
         }
+        window.addEventListener('beforeunload', () => room.disconnect());
+        window.addEventListener('pagehide', () => room.disconnect());
+
         return room;
     }).catch(e => {
         eventEmitter.emit('roomDidFailToConnect', { roomName, roomSid: null, error: e?.message });
@@ -84,6 +89,7 @@ function startLocalAudio() {
 function stopLocalVideo() {
     localVideoTrack.stop();
     localVideoTrack = null;
+    eventEmitter.emit('cameraDidStopRunning');
     if (myRoom) {
         myRoom.localParticipant.videoTracks.forEach(pub => pub.unpublish());
     }
@@ -107,38 +113,38 @@ export function removeLocalView() {
 
 function setLocalVideoEnabled(enabled) {
     localVideoTrack.enable(enabled);
+    return Promise.resolve(enabled)
 }
 
 function setLocalAudioEnabled(enabled) {
     localAudioTrack.enable(enabled);
+    return Promise.resolve(enabled)
 }
 
 function publishLocalVideo() {
-    room.localParticipant.publishVideoTrack(localVideoTrack);
+    myRoom.localParticipant.publishVideoTrack(localVideoTrack);
 }
 
 function publishLocalAudio() {
-    room.localParticipant.publishVideoTrack(localAudioTrack);
+    myRoom.localParticipant.publishVideoTrack(localAudioTrack);
 }
 
 function unpublishLocalVideo() {
-
+    myRoom.localParticipant.videoTracks.forEach(publication => publication.unpublish());
 }
 
 function unpublishLocalAudio() {
-
+    myRoom.localParticipant.audioTracks.forEach(publication => publication.unpublish());
 }
 
 export function addParticipantView(element, participantSid, trackSid) {
     if (!myRoom) return;
     const participant = myRoom.participants.get(participantSid);
     if (participant) {
-        console.log(participant);
-        participant.videoTracks.forEach(publication => {
-            if (publication.track.sid === trackSid) {
-                publication.track.attach(element);
-            }
-        })
+        const publication = participant.tracks.get(trackSid);
+        if (publication) {
+            publication.track.attach(element);
+        }
     }
 }
 
@@ -146,50 +152,67 @@ export function removeParticipantView(element, participantSid, trackSid) {
     if (!myRoom) return;
     const participant = myRoom.participants.get(participantSid);
     if (participant) {
-        for (const {track} of participant.videoTracks) {
-            if (track.sid === trackSid) {
-                track.detach(element);
-            }
+        const publication = participant.videoTracks.get(trackSid);
+        if (publication) {
+            publication.track.detach(element);
         }
     }
 }
 
 function _handleNewTrackEvents(participant, someTrack) {
-    const track = {
+    const trackInfo = {
         enabled: someTrack.isEnabled,
         trackName: someTrack.name,
         trackSid: someTrack.sid
     };
-    eventEmitter.emit('participantAddedVideoTrack', { participant, track });
-    someTrack.on('disabled', () => {
-        eventEmitter.emit('participantDisabledVideoTrack', { participant, track });
-    });
-    someTrack.on('enabled', () => {
-        eventEmitter.emit('participantEnabledVideoTrack', { participant, track });
-    });
+    if (someTrack.kind === 'video') {
+        eventEmitter.emit('participantAddedVideoTrack', { participant, track: trackInfo });
+        someTrack.on('disabled', () => {
+            eventEmitter.emit('participantDisabledVideoTrack', { participant, track: trackInfo });
+        });
+        someTrack.on('enabled', () => {
+            eventEmitter.emit('participantEnabledVideoTrack', { participant, track: trackInfo });
+        });
+    } else if (someTrack.kind === 'audio') {
+        eventEmitter.emit('participantAddedAudioTrack', { participant, track: trackInfo });
+        someTrack.on('disabled', () => {
+            eventEmitter.emit('participantDisabledAudioTrack', { participant, track: trackInfo });
+        });
+        someTrack.on('enabled', () => {
+            eventEmitter.emit('participantEnabledAudioTrack', { participant, track: trackInfo });
+        });
+    }
 }
 
 function _handleNewParticipantEvents(room, participant) {
     eventEmitter.emit('roomParticipantDidConnect', { roomName: room.name, roomSid: room.sid, participant })
     participant.videoTracks.forEach(publication => {
         if (publication.isSubcribed) {
-            _handleNewTrackEvents(participant, track);
+            _handleNewTrackEvents(participant, publication.track);
         }
         publication.on('unsubscribed', () => {
-            eventEmitter.emit('participantRemovedVideoTrack', { participant, track });
+            const trackInfo = {
+                enabled: publication.isTrackEnabled,
+                trackName: publication.trackName,
+                trackSid: publication.trackSid
+            };
+            eventEmitter.emit('participantRemovedVideoTrack', { participant, track: trackInfo });
         });
     });
 
     participant.on('trackSubscribed', someTrack => {
-        if (someTrack.kind === 'video') {
-            _handleNewTrackEvents(participant, someTrack);
-        }
+        _handleNewTrackEvents(participant, someTrack);
     });
 }
 
 function _registerEvents(room) {
     room.participants.forEach((participant) => _handleNewParticipantEvents(room, participant));
-    room.on('participantConnected', (participant) => _handleNewParticipantEvents(room, participant));
+    room.on('participantConnected', participant => _handleNewParticipantEvents(room, participant));
+    room.on('participantDisconnected', participant => {eventEmitter.emit('roomParticipantDidDisconnect', { roomName: room.name, roomSid: room.sid, participant })});
+}
+
+function flipCamera() {
+    console.log('Camera source change not implemented');
 }
 
 export default {
@@ -204,4 +227,9 @@ export default {
     stopLocalAudio,
     setLocalVideoEnabled,
     setLocalAudioEnabled,
+    flipCamera,
+    publishLocalVideo,
+    publishLocalAudio,
+    unpublishLocalVideo,
+    unpublishLocalAudio
 }

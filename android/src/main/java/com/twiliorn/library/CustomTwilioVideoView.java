@@ -21,9 +21,10 @@ import android.media.AudioFocusRequest;
 import android.media.AudioManager;
 import android.os.Build;
 import android.os.Handler;
+import androidx.annotation.Nullable;
+import androidx.annotation.NonNull;
+import androidx.annotation.StringDef;
 import android.os.HandlerThread;
-import android.support.annotation.NonNull;
-import android.support.annotation.StringDef;
 import android.util.Log;
 import android.view.View;
 
@@ -85,7 +86,6 @@ import static com.twiliorn.library.CustomTwilioVideoView.Events.ON_CONNECTED;
 import static com.twiliorn.library.CustomTwilioVideoView.Events.ON_CONNECT_FAILURE;
 import static com.twiliorn.library.CustomTwilioVideoView.Events.ON_DISCONNECTED;
 import static com.twiliorn.library.CustomTwilioVideoView.Events.ON_DATATRACK_MESSAGE_RECEIVED;
-import static com.twiliorn.library.CustomTwilioVideoView.Events.ON_NETWORK_QUALITY_LEVELS_CHANGED;
 import static com.twiliorn.library.CustomTwilioVideoView.Events.ON_PARTICIPANT_ADDED_DATA_TRACK;
 import static com.twiliorn.library.CustomTwilioVideoView.Events.ON_PARTICIPANT_ADDED_AUDIO_TRACK;
 import static com.twiliorn.library.CustomTwilioVideoView.Events.ON_PARTICIPANT_ADDED_VIDEO_TRACK;
@@ -266,7 +266,6 @@ public class CustomTwilioVideoView extends View implements LifecycleEventListene
     }
 
     private boolean createLocalVideo(boolean enableVideo) {
-      isVideoEnabled = enableVideo;
         // Share your camera
         cameraCapturer = this.createCameraCaputer(getContext(), CameraCapturer.CameraSource.FRONT_CAMERA);
         if (cameraCapturer == null){
@@ -395,6 +394,9 @@ public class CustomTwilioVideoView extends View implements LifecycleEventListene
         // Share your microphone
         localAudioTrack = LocalAudioTrack.create(getContext(), enableAudio);
 
+        // Share your microphone
+        localAudioTrack = LocalAudioTrack.create(getContext(), enableAudio);
+
         if (cameraCapturer == null) {
             boolean createVideoStatus = createLocalVideo(enableVideo);
             if (!createVideoStatus) {
@@ -429,13 +431,6 @@ public class CustomTwilioVideoView extends View implements LifecycleEventListene
          if (localDataTrack != null) {
             connectOptionsBuilder.dataTracks(Collections.singletonList(localDataTrack));
         }
-
-         if (enableNetworkQualityReporting) {
-             connectOptionsBuilder.enableNetworkQuality(true);
-             connectOptionsBuilder.networkQualityConfiguration(new NetworkQualityConfiguration(
-                     NetworkQualityVerbosity.NETWORK_QUALITY_VERBOSITY_MINIMAL,
-                     NetworkQualityVerbosity.NETWORK_QUALITY_VERBOSITY_MINIMAL));
-         }
 
         room = Video.connect(getContext(), connectOptionsBuilder.build(), roomListener());
     }
@@ -743,7 +738,6 @@ public class CustomTwilioVideoView extends View implements LifecycleEventListene
             @Override
             public void onConnected(Room room) {
                 localParticipant = room.getLocalParticipant();
-                localParticipant.setListener(localListener());
 
                 WritableMap event = new WritableNativeMap();
                 event.putString("roomName", room.getName());

@@ -157,7 +157,6 @@ export default class extends Component {
 
   componentWillMount () {
     this._registerEvents()
-    this._startLocalVideo()
     this._startLocalAudio()
   }
 
@@ -222,10 +221,9 @@ export default class extends Component {
    * @param  {String} roomName    The connecting room name
    * @param  {String} accessToken The Twilio's JWT access token
    * @param  {String} encodingParameters Control Encoding config
-   * @param  {Boolean} enableNetworkQualityReporting Report network quality of participants
    */
-  connect ({ roomName, accessToken, enableVideo = true, encodingParameters = null, enableNetworkQualityReporting = false }) {
-    TWVideoModule.connect(accessToken, roomName, enableVideo, encodingParameters, enableNetworkQualityReporting)
+  connect ({ roomName, accessToken, enableVideo = true, encodingParameters }) {
+    TWVideoModule.connect(accessToken, roomName, enableVideo, encodingParameters)
   }
 
   /**
