@@ -34,6 +34,8 @@ const remoteVideoTracks = [];
 const remoteAudioTracks = [];
 const eventEmitter = new EventEmitter();
 
+const audioElements = new Map();
+
 // https://www.twilio.com/docs/video/tutorials/developing-high-quality-video-applications#grid-mode
 function connect(roomName, accessToken, enableVideo, encodingParameters, enableNetworkQualityReporting) {
     TW.connect(accessToken, {
@@ -57,14 +59,14 @@ function connect(roomName, accessToken, enableVideo, encodingParameters, enableN
     });
 }
 
-function setRemoteAudioPlayback(participantSid, enabled) {
-    const participant = room.participants.get(participantSid);
-    if (participant) {
-        participant.audioTracks.forEach(publication => {
-            publication.track.isEnabled = enabled;
-        })
-    }
-}
+// function setRemoteAudioPlayback(participantSid, enabled) {
+//     const participant = room.participants.get(participantSid);
+//     if (participant) {
+//         participant.audioTracks.forEach(publication => {
+//             publication.track.isEnabled = enabled;
+//         })
+//     }
+// }
 
 function disconnect() {
     myRoom.disconnect();
@@ -141,7 +143,7 @@ export function addParticipantView(element, participantSid, trackSid) {
     if (!myRoom) return;
     const participant = myRoom.participants.get(participantSid);
     if (participant) {
-        const publication = participant.tracks.get(trackSid);
+        const publication = participant.videoTracks.get(trackSid);
         if (publication) {
             publication.track.attach(element);
         }
@@ -174,11 +176,14 @@ function _handleNewTrackEvents(participant, someTrack) {
             eventEmitter.emit('participantEnabledVideoTrack', { participant, track: trackInfo });
         });
     } else if (someTrack.kind === 'audio') {
+        addRemoteAudio(participant.sid, someTrack.sid);
         eventEmitter.emit('participantAddedAudioTrack', { participant, track: trackInfo });
         someTrack.on('disabled', () => {
+            setRemoteAudioPlayback(participant.sid, false);
             eventEmitter.emit('participantDisabledAudioTrack', { participant, track: trackInfo });
         });
         someTrack.on('enabled', () => {
+            setRemoteAudioPlayback(participant.sid, true);
             eventEmitter.emit('participantEnabledAudioTrack', { participant, track: trackInfo });
         });
     }
@@ -213,6 +218,29 @@ function _registerEvents(room) {
 
 function flipCamera() {
     console.log('Camera source change not implemented');
+}
+
+function addRemoteAudio(participantSid, trackSid) {
+    const participant = myRoom.participants.get(participantSid);
+    if (participant) {
+        const audioTrack = participant.audioTracks.get(trackSid)?.track;
+        if (audioTrack) {
+            console.log(audioTrack);
+            const audioElement = audioElements.get(participantSid) ?? new Audio();
+            audioElement.autoplay = true;
+            if (!audioTrack.isEnabled) audioElement.muted = true;
+            audioTrack.attach(audioElement);
+            audioElements.set(participantSid, audioElement);
+        }
+    }
+}
+
+function setRemoteAudioPlayback(participantSid, enabled) {
+    const audioElement = audioElements.get(participantSid);
+    if (audioElement) {
+        audioElement.muted = !enabled;
+        console.log(audioElements)
+    }
 }
 
 export default {
