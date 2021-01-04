@@ -53,6 +53,10 @@ function connect(roomName, accessToken, enableVideo, encodingParameters, enableN
         window.addEventListener('beforeunload', () => room.disconnect());
         window.addEventListener('pagehide', () => room.disconnect());
 
+        room.once('disconnected', (room, error) => {
+            eventEmitter.emit('roomDidDisconnect', { roomName: room.name, error });
+        });
+
         return room;
     }).catch(e => {
         eventEmitter.emit('roomDidFailToConnect', { roomName, roomSid: null, error: e?.message });
