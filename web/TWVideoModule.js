@@ -113,7 +113,7 @@ export function addLocalView(element) {
     if (localVideoTrack) localVideoTrack.attach(element);
 }
 
-export function removeLocalView() {
+export function removeLocalView(element) {
     if (localVideoTrack) localVideoTrack.detach(element);
 }
 
