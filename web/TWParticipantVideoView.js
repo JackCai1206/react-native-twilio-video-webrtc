@@ -2,7 +2,7 @@ import React, { Component, useEffect, useRef } from 'react'
 import { View } from 'react-native';
 import { addParticipantView, removeParticipantView } from './TWVideoModule';
 
-const TWParticipantVideoView = ({ trackIdentifier }) => {
+const TWParticipantVideoView = ({ trackIdentifier, style }) => {
     const videoEl = useRef(null);
 
     useEffect(() => {
@@ -12,8 +12,10 @@ const TWParticipantVideoView = ({ trackIdentifier }) => {
     })
 
     return (
-        <View>
+        <View style={style}>
             <video
+                width={'100%'}
+                height={'100%'}
                 ref={videoEl}
                 autoPlay
             ></video>

@@ -73,7 +73,8 @@ function connect(roomName, accessToken, enableVideo, encodingParameters, enableN
 // }
 
 function disconnect() {
-    myRoom.disconnect();
+    console.log('disconnect');
+    if (myRoom) myRoom.disconnect();
     myRoom = null;
 }
 
@@ -119,12 +120,12 @@ export function removeLocalView(element) {
 
 function setLocalVideoEnabled(enabled) {
     localVideoTrack.enable(enabled);
-    return Promise.resolve(enabled)
+    return Promise.resolve(enabled);
 }
 
 function setLocalAudioEnabled(enabled) {
     localAudioTrack.enable(enabled);
-    return Promise.resolve(enabled)
+    return Promise.resolve(enabled);
 }
 
 function publishLocalVideo() {
