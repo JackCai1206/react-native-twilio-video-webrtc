@@ -1,17 +1,28 @@
 import React, { Component, useEffect, useRef } from 'react'
 import { View } from 'react-native';
-import { addLocalView, removeLocalView } from './TWVideoModule';
+import TW, { addLocalView, removeLocalView } from './TWVideoModule';
 
 const TWLocalVideoView = ({ enabled, style }) => {
     const videoEl = useRef(null);
 
     useEffect(() => {
-        if (enabled) addLocalView(videoEl.current);
-        else removeLocalView(videoEl.current)
+        console.log('enable local video', enabled);
+        if (enabled) {
+            TW.startLocalAudio()
+            .then(TW.startLocalVideo)
+            .then(() => addLocalView(videoEl.current));
+        }
+        else {
+            TW.stopLocalAudio();
+            TW.stopLocalVideo();
+            removeLocalView(videoEl.current)
+        }
         return () => {
+            TW.stopLocalVideo();
+            TW.stopLocalAudio();
             removeLocalView(videoEl.current);
         }
-    })
+    }, [enabled])
 
     return (
         <View style={style}>

@@ -99,15 +99,19 @@ function changeListenerStatus(value) {
   listening = value;
 }
 
-function startLocalVideo() {
-  TW.createLocalVideoTrack().then((track) => {
+async function startLocalVideo() {
+  if (!localVideoTrack) {
+    const track = await TW.createLocalVideoTrack();
     localVideoTrack = track;
     eventEmitter.emit("cameraDidStart");
-  });
+  }
 }
 
-function startLocalAudio() {
-  TW.createLocalAudioTrack().then((track) => (localAudioTrack = track));
+async function startLocalAudio() {
+  if (!localAudioTrack) {
+    const track = await TW.createLocalAudioTrack();
+    localAudioTrack = track;
+  }
 }
 
 function stopLocalVideo() {
@@ -120,7 +124,7 @@ function stopLocalVideo() {
 }
 
 function stopLocalAudio() {
-  if (localVideoTrack) localAudioTrack.stop();
+  if (localAudioTrack) localAudioTrack.stop();
   localAudioTrack = null;
   if (myRoom) {
     myRoom.localParticipant.audioTracks.forEach((pub) => pub.unpublish());
@@ -136,12 +140,14 @@ export function removeLocalView(element) {
 }
 
 function setLocalVideoEnabled(enabled) {
-  localVideoTrack.enable(enabled);
+  if (localVideoTrack)
+    localVideoTrack.enable(enabled);
   return Promise.resolve(enabled);
 }
 
 function setLocalAudioEnabled(enabled) {
-  localAudioTrack.enable(enabled);
+  if (localAudioTrack)
+    localAudioTrack.enable(enabled);
   return Promise.resolve(enabled);
 }
 
