@@ -44,6 +44,7 @@ function connect(
   encodingParameters,
   enableNetworkQualityReporting
 ) {
+  console.log(enableVideo)
   TW.connect(accessToken, {
     name: roomName,
     video: enableVideo,
@@ -100,8 +101,8 @@ function changeListenerStatus(value) {
 
 function startLocalVideo() {
   TW.createLocalVideoTrack().then((track) => {
-    eventEmitter.emit("cameraDidStart");
     localVideoTrack = track;
+    eventEmitter.emit("cameraDidStart");
   });
 }
 
@@ -169,7 +170,7 @@ export function addParticipantView(element, participantSid, trackSid) {
   const participant = myRoom.participants.get(participantSid);
   if (participant) {
     const publication = participant.videoTracks.get(trackSid);
-    if (publication) {
+    if (publication && publication.track) {
       publication.track.attach(element);
     }
   }

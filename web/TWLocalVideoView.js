@@ -16,6 +16,8 @@ const TWLocalVideoView = ({ enabled, style }) => {
     return (
         <View style={style}>
             <video
+                width={'100%'}
+                height={'100%'}
                 ref={videoEl}
                 autoPlay
             ></video>
