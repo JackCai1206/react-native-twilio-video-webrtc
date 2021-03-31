@@ -10,6 +10,7 @@ const TWLocalVideoView = ({ enabled, style }) => {
         if (enabled) {
             TW.startLocalAudio()
             .then(TW.startLocalVideo)
+            .then(() => TW.publishLocalVideo())
             .then(() => addLocalView(videoEl.current));
         }
         else {
