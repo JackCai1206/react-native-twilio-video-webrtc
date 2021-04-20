@@ -46,10 +46,10 @@ function connect(
 	encodingParameters,
 	enableNetworkQualityReporting
 ) {
-	console.log(enableVideo)
+	// console.log(localVideoTrack, localAudioTrack);
 	TW.connect(accessToken, {
 		name: roomName,
-		// video: enableVideo,
+		video: enableVideo,
 		audio: true,
 		networkQuality: enableNetworkQualityReporting,
 		tracks: [localVideoTrack, localAudioTrack],
@@ -113,7 +113,7 @@ async function startLocalVideo() {
 }
 
 async function startLocalAudio() {
-	if (!localAudioTrack && startingAudio) {
+	if (!localAudioTrack && !startingAudio) {
 		startingAudio = true;
 		console.log('starting audio');
 		const track = await TW.createLocalAudioTrack();
